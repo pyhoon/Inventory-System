@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Created using Pakai framework">
+    <meta name="author" content="Aeric Poon">
+    <title>$APP_TITLE$</title>
+    <link rel="icon" type="image/png" href="$SERVER_URL$/assets/img/favicon.png">
+
+    <!-- PenguinUI Dependencies: Tailwind CSS and Alpine.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Icons and HTMX -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
+        integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz"
+        crossorigin="anonymous"></script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="flex bg-slate-50 font-sans text-slate-900" x-data="{ sidebarOpen: false, modalOpen: false }">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div x-show="sidebarOpen" x-transition:enter="transition ease-in-out duration-300"
+        x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in-out duration-300" x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0" @click="sidebarOpen = false"
+        class="fixed inset-0 z-20 bg-slate-900/50 lg:hidden" x-cloak></div>
+
+    <!-- Sidebar -->
+    <aside
+        class="fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-slate-200 transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+        <div class="flex items-center justify-between h-16 px-6 border-b border-slate-200">
+            <a href="$SERVER_URL$" class="flex items-center gap-2 font-bold text-xl text-sky-600">
+                <i class="bi bi-infinity h2 mb-0"></i>
+                <span>$APP_TRADEMARK$</span>
+            </a>
+            <button @click="sidebarOpen = false" class="lg:hidden text-slate-500 hover:text-slate-700">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <nav class="p-4 space-y-2">
+            <a href="/products"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <i class="bi bi-box-seam"></i>
+                <span>Products</span>
+            </a>
+            <a href="/categories"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg bg-sky-50 text-sky-700 font-medium transition-colors">
+                <i class="bi bi-tag"></i>
+                <span>Categories</span>
+            </a>
+            <div class="pt-4 mt-4 border-t border-slate-100">
+                <a href="https://paypal.me/aeric80/" target="_blank"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors text-sm">
+                    <img src="/assets/img/coffee.png" class="h-6" alt="Coffee">
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <!-- Top Navbar -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8">
+            <button @click="sidebarOpen = true" class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-md">
+                <i class="bi bi-list h4 mb-0"></i>
+            </button>
+
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <h1 class="text-lg font-extrabold tracking-tight text-slate-900">$HOME_TITLE$</h1>
+                    <p class="text-[10px] font-bold text-sky-600 uppercase tracking-widest">Version $VERSION$</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="flex-1 overflow-y-auto p-4 lg:p-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Categories</h2>
+                        <p class="text-slate-500 text-sm">Organize your products into categories</p>
+                    </div>
+                    <button @click="modalOpen = true" hx-get="/hx/categories/add" hx-target="#modal-content"
+                        hx-trigger="click"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Add Category</span>
+                    </button>
+                </div>
+
+                <!-- Table Container -->
+                <div
+                    class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden max-w-2xl mx-auto md:mx-0">
+                    <div id="categories-container" hx-get="/hx/categories/table" hx-trigger="load">
+                        <div class="p-8 text-center text-slate-500">
+                            <i class="bi bi-arrow-repeat animate-spin h3 block mb-2"></i>
+                            Loading categories...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Info -->
+                <div class="mt-8 pt-8 border-t border-slate-200 text-center space-y-4">
+                    <div class="flex items-center justify-center gap-4">
+                        <a href="https://github.com/pyhoon/pakai-casual-b4j"
+                            class="text-slate-500 hover:text-slate-900 transition-colors">
+                            <i class="bi bi-github h4"></i>
+                            <span class="sr-only">GitHub</span>
+                        </a>
+                    </div>
+                    <p class="text-sm text-slate-500">$APP_COPYRIGHT$</p>
+                    <p class="text-xs text-slate-400">Made with <i class="bi bi-heart-fill text-red-500"></i> using B4X
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Backdrop & Container -->
+    <div x-show="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" x-cloak>
+        <!-- Overlay -->
+        <div x-show="modalOpen" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0" @click="modalOpen = false"
+            class="fixed inset-0 bg-slate-900/60 transition-opacity"></div>
+
+        <!-- Modal Content -->
+        <div x-show="modalOpen" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all">
+            <div id="modal-content">
+                <!-- HTMX will load content here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast / Notification (Tailwind version) -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+    <script src="$SERVER_URL$/assets/js/app.js"></script>
+    <script>
+        document.body.addEventListener('entity:changed', function () {
+            document.dispatchEvent(new CustomEvent('close-modal'));
+        });
+
+        document.addEventListener('close-modal', () => {
+            const body = document.querySelector('body');
+            if (body && body._x_dataStack) {
+                body._x_dataStack[0].modalOpen = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

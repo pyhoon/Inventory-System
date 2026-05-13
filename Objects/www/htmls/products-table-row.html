@@ -1,0 +1,25 @@
+<tr class="hover:bg-slate-50 transition-colors">
+  <td class="px-6 py-4 text-right text-slate-500">$id$</td>
+  <td class="px-6 py-4 font-medium text-slate-900">$code$</td>
+  <td class="px-6 py-4 text-slate-600">$name$</td>
+  <td class="px-6 py-4">
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800">
+      $category$
+    </span>
+  </td>
+  <td class="px-6 py-4 text-right font-mono text-slate-900">$price$</td>
+  <td class="px-6 py-4 text-center whitespace-nowrap text-sm font-medium">
+    <div class="flex justify-center gap-2">
+        <button @click="modalOpen = true" 
+                hx-get="/hx/products/edit/$id$" hx-target="#modal-content" hx-trigger="click"
+                class="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" title="Edit">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button @click="modalOpen = true" 
+                hx-get="/hx/products/delete/$id$" hx-target="#modal-content" hx-trigger="click"
+                class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Delete">
+          <i class="bi bi-trash3"></i>
+        </button>
+    </div>
+  </td>
+</tr>

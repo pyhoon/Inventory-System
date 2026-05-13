@@ -1,0 +1,13 @@
+# ignore files
+Objects/*.ini
+Objects/*.log
+Objects/*.jar
+Objects/*db*
+
+# ignore ALL files in these directories
+AutoBackups
+Objects/b4xlibs
+Objects/bin
+Objects/logs
+Objects/shell
+Objects/src
