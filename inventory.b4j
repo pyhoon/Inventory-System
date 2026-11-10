@@ -25,7 +25,7 @@ Module7=WebUtils
 NumberOfFiles=4
 NumberOfLibraries=4
 NumberOfModules=7
-Version=10.5
+Version=10.7
 @EndOfDesignText@
 #Region  Project Attributes
 #CommandLineArgs:
@@ -47,7 +47,7 @@ Version=10.5
 #End Region
 'Download tools: <link>libget.jar|https://github.com/pyhoon/libget-b4j/releases/download/v2.60/libget.jar</link>
 Sub Process_Globals
-	Public DB	As SQL 
+	Public DB	As SQL
 	Public App	As EndsMeet
 	Public Pool As ConnectionPool
 	Public Const APP_VERSION As String = "1.00"
@@ -58,7 +58,7 @@ End Sub
 Sub AppStart (Args() As String)
 	App.Initialize
 	App.LoadConfig
-	App.LogEnabled = True
+	App.AssetsFolder = File.Combine(File.DirApp, "www")
 	#If Release
 	'App.ssl.Enabled = True
 	'App.RedirectToHttps = True
@@ -72,7 +72,7 @@ Sub AppStart (Args() As String)
 	App.Rest("/hx/categories/*", "CategoryService")
 	
 	App.Start
-	App.LogStartupMessage
+	Log(App.StartupMessage)
 	App.ctx.Put("VERSION", APP_VERSION)
 	Log($"App version: ${APP_VERSION}"$)
 	Log($"Open the following URL from your web browser"$)

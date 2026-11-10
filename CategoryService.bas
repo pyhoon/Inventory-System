@@ -204,7 +204,7 @@ Private Sub LoadFromCache (Key As String) As String
 		Return App.ctx.Get(Key)
 	End If
 	Dim FileName As String = FileMap.Get(Key)
-	Dim FileDir As String = File.Combine(App.staticfiles.Folder, "htmls")
+	Dim FileDir As String = File.Combine(App.AssetsFolder, "htmls")
 	If File.Exists(FileDir, FileName) Then
 		Dim element As String = File.ReadString(FileDir, FileName)
 	End If

@@ -15,7 +15,7 @@ Public Sub Initialize
 	SQL1 = Main.Pool.GetConnection
 	#Else
 	SQL1 = Main.DB
-	#End If	
+	#End If
 End Sub
 
 ' Close SQL object
@@ -109,7 +109,7 @@ Public Sub Search (keyword As String) As List
 	If keyword <> "" Then
 		query = query & " WHERE UPPER(p.product_code) LIKE ? Or UPPER(p.product_name) LIKE ? Or UPPER(c.category_name) LIKE ?"
 	End If
-	query = query & " ORDER BY p.id DESC"
+	query = query & " ORDER BY p.id"
 	If keyword <> "" Then
 		Dim rs As ResultSet = SQL1.ExecQuery2(query, Array("%" & keyword.ToUpperCase & "%", "%" & keyword.ToUpperCase & "%", "%" & keyword.ToUpperCase & "%"))
 	Else

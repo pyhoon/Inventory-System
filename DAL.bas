@@ -50,13 +50,12 @@ Public Sub InitDatabase
 				 User = ctx.GetDefault("User", "")
 				 Password = ctx.GetDefault("Password", "")
 				 'MaxPoolSize = ctx.GetDefault("MaxPoolSize", 0)
-				SQL1.Initialize2(Driver, JdbcUrl, User, Password)
+				'SQL1.Initialize2(Driver, JdbcUrl, User, Password)
 			Case "SQLITE"
 				DBDir = ctx.GetDefault("DbDir", "")
 				DBFile = ctx.GetDefault("DbFile", "")
 				If DBDir = "" Then DBDir = File.DirApp
-				If DBFile = "" Then DBFile = "pakai.db"
-				Main.DB = SQL1
+				If DBFile = "" Then DBFile = "inventory.db"
 			Case Else
 				LogColor($"${DBType} not supported!"$, COLOR_RED)
 				Log("Application is terminated.")
@@ -82,6 +81,10 @@ Public Sub CheckDatabase
 			Case "SQLITE"
 				Dim DBExist As Boolean = File.Exists(DBDir, DBFile)
 			Case "MARIADB", "MYSQL"
+				Dim JdbcUrl As String = ctx.Get("JdbcUrl")
+				JdbcUrl = JdbcUrl.Replace("{DbHost}", DBHost)
+				JdbcUrl = JdbcUrl.Replace("{DbName}", "information_schema")
+				JdbcUrl = IIf(DBPort.Length = 0, JdbcUrl.Replace(":{DbPort}", ""), JdbcUrl.Replace("{DbPort}", DBPort))
 				SQL1.InitializeAsync("SQL1", Driver, JdbcUrl, User, Password)
 				Wait For SQL1_Ready (Success As Boolean)
 				If Success = False Then
@@ -117,10 +120,9 @@ Public Sub CheckDatabase
 			JdbcUrl = JdbcUrl.Replace("{DbName}", DBName)
 			JdbcUrl = IIf(DBPort.Length = 0, JdbcUrl.Replace(":{DbPort}", ""), JdbcUrl.Replace("{DbPort}", DBPort))
 			ConnectionPool.Initialize(Driver, JdbcUrl, User, Password)
-			Main.DB = ConnectionPool.GetConnection
+			Main.Pool = ConnectionPool
 		Else
 			SQL1.InitializeSQLite(DBDir, DBFile, False)
-			SQL1.ExecQuerySingleResult("PRAGMA journal_mode = WAL")
 			Main.DB = SQL1
 		End If
 		' Create new tables after database has already created
@@ -155,50 +157,79 @@ Private Sub CreateDatabase
 		ConnectionPool.Initialize(Driver, JdbcUrl, User, Password)
 		SQL1 = ConnectionPool.GetConnection
 		Main.Pool = ConnectionPool
+	Else
+		SQL1.InitializeSQLite(DBDir, DBFile, False)
 	End If
 	
-	If UsePool(DBType) Then
-		Dim query As String = "CREATE TABLE tbl_categories (id int NOT NULL AUTO_INCREMENT, category_name varchar(255) NOT NULL, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime)"
-	Else
-		Dim query As String = "CREATE TABLE tbl_categories (id INTEGER, category_name TEXT NOT NULL, created_date TEXT DEFAULT (datetime('now')), modified_date TEXT, deleted_date TEXT, PRIMARY KEY(id AUTOINCREMENT))"
-	End If
-	SQL1.AddNonQueryToBatch(query, Null)
+	Select DBType.ToUpperCase
+		Case "SQLITE"
+			Dim query As String = "CREATE TABLE tbl_categories (id INTEGER, category_name TEXT NOT NULL, created_date TEXT DEFAULT (datetime('now')), modified_date TEXT, deleted_date TEXT, PRIMARY KEY(id AUTOINCREMENT))"
+		Case "MARIADB"
+			Dim query As String = "CREATE TABLE tbl_categories (id int NOT NULL AUTO_INCREMENT, category_name varchar(255) NOT NULL, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime, PRIMARY KEY(id))"
+		Case "MYSQL"
+			'Dim query As String = "CREATE TABLE tbl_categories (id int NOT NULL AUTO_INCREMENT, category_name varchar(255) NOT NULL, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime)"
+			Dim query As String = "CREATE TABLE tbl_categories (id int NOT NULL AUTO_INCREMENT, category_name varchar(255) NOT NULL, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime, PRIMARY KEY(id))"
+	End Select
+	'If UsePool(DBType) Then
+	'	Dim query As String = "CREATE TABLE tbl_categories (id int NOT NULL AUTO_INCREMENT, category_name varchar(255) NOT NULL, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime)"
+	'Else
+	'	Dim query As String = "CREATE TABLE tbl_categories (id INTEGER, category_name TEXT NOT NULL, created_date TEXT DEFAULT (datetime('now')), modified_date TEXT, deleted_date TEXT, PRIMARY KEY(id AUTOINCREMENT))"
+	'End If
+	SQL1.ExecNonQuery(query)
+	'SQL1.AddNonQueryToBatch(query, Null)
 
 	Dim query As String = "INSERT INTO tbl_categories (category_name) VALUES (?)"
-	SQL1.AddNonQueryToBatch(query, Array("Hardwares"))
-	SQL1.AddNonQueryToBatch(query, Array("Toys"))
+	'SQL1.AddNonQueryToBatch(query, Array("Hardwares"))
+	'SQL1.AddNonQueryToBatch(query, Array("Toys"))
+	SQL1.ExecNonQuery2(query, Array("Hardwares"))
+	SQL1.ExecNonQuery2(query, Array("Toys"))
 
-	If UsePool(DBType) Then
-		Dim query As String = "CREATE TABLE tbl_products (id int NOT NULL AUTO_INCREMENT, category_id int, product_code varchar(12) NOT NULL, product_name varchar(255) NOT NULL, product_price decimal(10,2) NOT NULL DEFAULT (0.00), product_image mediumblob, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime, FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
-	Else
-		Dim query As String = "CREATE TABLE tbl_products (id INTEGER, category_id INTEGER, product_code TEXT NOT NULL, product_name TEXT NOT NULL, product_price NUMERIC NOT NULL DEFAULT (0.00), product_image BLOB, created_date TEXT DEFAULT (datetime('now')), modified_date TEXT, deleted_date TEXT, PRIMARY KEY(id AUTOINCREMENT), FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
-	End If
-	SQL1.AddNonQueryToBatch(query, Null)
+	Select DBType.ToUpperCase
+		Case "SQLITE"
+			Dim query As String = "CREATE TABLE tbl_products (id INTEGER, category_id INTEGER, product_code TEXT NOT NULL, product_name TEXT NOT NULL, product_price NUMERIC NOT NULL DEFAULT (0.00), product_image BLOB, created_date TEXT DEFAULT (datetime('now')), modified_date TEXT, deleted_date TEXT, PRIMARY KEY(id AUTOINCREMENT), FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
+		Case "MARIADB"
+			Dim query As String = "CREATE TABLE tbl_products (id int NOT NULL AUTO_INCREMENT, category_id int, product_code varchar(12) NOT NULL, product_name varchar(255) NOT NULL, product_price decimal(10,2) NOT NULL DEFAULT (0.00), product_image mediumblob, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime, PRIMARY KEY(id), FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
+		Case "MYSQL"
+			'Dim query As String = "CREATE TABLE tbl_products (id int NOT NULL AUTO_INCREMENT, category_id int, product_code varchar(12) NOT NULL, product_name varchar(255) NOT NULL, product_price decimal(10,2) NOT NULL DEFAULT (0.00), product_image mediumblob, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime, FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
+			Dim query As String = "CREATE TABLE tbl_products (id int NOT NULL AUTO_INCREMENT, category_id int, product_code varchar(12) NOT NULL, product_name varchar(255) NOT NULL, product_price decimal(10,2) NOT NULL DEFAULT (0.00), product_image mediumblob, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime, PRIMARY KEY(id), FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
+	End Select
+	'If UsePool(DBType) Then
+	'	Dim query As String = "CREATE TABLE tbl_products (id int NOT NULL AUTO_INCREMENT, category_id int, product_code varchar(12) NOT NULL, product_name varchar(255) NOT NULL, product_price decimal(10,2) NOT NULL DEFAULT (0.00), product_image mediumblob, created_date timestamp DEFAULT CURRENT_TIMESTAMP, modified_date datetime ON UPDATE CURRENT_TIMESTAMP, deleted_date datetime, FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
+	'Else
+	'	Dim query As String = "CREATE TABLE tbl_products (id INTEGER, category_id INTEGER, product_code TEXT NOT NULL, product_name TEXT NOT NULL, product_price NUMERIC NOT NULL DEFAULT (0.00), product_image BLOB, created_date TEXT DEFAULT (datetime('now')), modified_date TEXT, deleted_date TEXT, PRIMARY KEY(id AUTOINCREMENT), FOREIGN KEY (category_id) REFERENCES tbl_categories (id))"
+	'End If
+	'SQL1.AddNonQueryToBatch(query, Null)
+	SQL1.ExecNonQuery(query)
 	
 	Dim query As String = "INSERT INTO tbl_products (category_id, product_code, product_name, product_price) VALUES (?, ?, ?, ?)"
-	SQL1.AddNonQueryToBatch(query, Array(2, "T001", "Teddy Bear", 99.9))
-	SQL1.AddNonQueryToBatch(query, Array(1, "H001", "Hammer", 15.75))
-	SQL1.AddNonQueryToBatch(query, Array(2, "T002", "Optimus Prime", 1000))
+	'SQL1.AddNonQueryToBatch(query, Array(2, "T001", "Teddy Bear", 99.9))
+	'SQL1.AddNonQueryToBatch(query, Array(1, "H001", "Hammer", 15.75))
+	'SQL1.AddNonQueryToBatch(query, Array(2, "T002", "Optimus Prime", 1000))
+	SQL1.ExecNonQuery2(query, Array(2, "T001", "Teddy Bear", 99.9))
+	SQL1.ExecNonQuery2(query, Array(1, "H001", "Hammer", 15.75))
+	SQL1.ExecNonQuery2(query, Array(2, "T002", "Optimus Prime", 1000))
 	
-	Dim SenderFilter As Object = SQL1.ExecNonQueryBatch("SQL")
-	Wait For (SenderFilter) SQL_NonQueryComplete (Success As Boolean)
-	If Success Then
-		LogColor("Database is created successfully!", COLOR_BLUE)
-	Else
-		LogColor("Database creation failed!", COLOR_RED)
-	End If
-	Main.DB = SQL1
+	'Dim SenderFilter As Object = SQL1.ExecNonQueryBatch("SQL")
+	'Wait For (SenderFilter) SQL_NonQueryComplete (Success As Boolean)
+	'If Success Then
+	LogColor("Database is created successfully!", COLOR_BLUE)
+	'Else
+	'	LogColor("Database creation failed!", COLOR_RED)
+	'End If
+	CloseDatabase
 End Sub
 
 Public Sub CreateSQLite As Boolean
 	Try
+		Dim Success As Boolean
 		SQL1.InitializeSQLite(DBDir, DBFile, True)
 		SQL1.ExecQuerySingleResult("PRAGMA journal_mode = WAL")
-		Return True
+		Success = True
 	Catch
 		LogColor(LastException.Message, COLOR_RED)
-		Return False
 	End Try
+	CloseDatabase
+	Return Success
 End Sub
 
 Public Sub CreateDatabaseAsync As ResumableSub
